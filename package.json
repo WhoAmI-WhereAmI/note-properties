@@ -117,9 +117,7 @@
         "aliases"
       ],
       "excludedProperties": [],
-      "hidePropertiesView": false,
-      "delimiters": "---",
-      "language": "yaml"
+      "hidePropertiesView": false
     },
     "optionSchema": {
       "includeAll": {
@@ -140,7 +138,7 @@
       },
       "delimiters": {
         "type": "string",
-        "description": "Frontmatter delimiters"
+        "description": "Frontmatter delimiters (only used by Quartz versions without built-in frontmatter; otherwise set configuration.frontmatter)"
       },
       "language": {
         "type": "enum",
@@ -148,7 +146,7 @@
           "yaml",
           "toml"
         ],
-        "description": "Frontmatter language"
+        "description": "Frontmatter language (only used by Quartz versions without built-in frontmatter; otherwise set configuration.frontmatter)"
       }
     },
     "components": {
@@ -161,14 +159,15 @@
     "capabilities": {
       "provides": {
         "data": [
-          "frontmatter",
-          "aliases",
-          "frontmatterLinks",
           "noteProperties"
         ]
       },
       "requires": {
         "data": [
+          {
+            "name": "frontmatter",
+            "reason": "the properties view has nothing to show"
+          },
           "slug"
         ]
       }
