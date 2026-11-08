@@ -71,6 +71,31 @@ const inlineScriptPlugin: Plugin = {
   },
 };
 
+/**
+ * gray-matter's default engines include a `javascript` engine that `eval`s frontmatter. The
+ * transformer registers its own YAML/TOML engines and refuses JavaScript, so the defaults are never
+ * used, but bundling them puts an `eval` in dist/ (flagged by scanners and reviews) and pulls in
+ * js-yaml 3. Replace them with JSON only.
+ */
+const grayMatterEnginesPlugin: Plugin = {
+  name: "gray-matter-engines",
+  setup(build) {
+    build.onLoad({ filter: /gray-matter[\\/]lib[\\/]engines\.js$/ }, () => ({
+      contents: `"use strict";
+module.exports = {
+  json: {
+    parse: JSON.parse.bind(JSON),
+    stringify: (obj, options) => {
+      const opts = Object.assign({ replacer: null, space: 2 }, options);
+      return JSON.stringify(obj, opts.replacer, opts.space);
+    },
+  },
+};`,
+      loader: "js",
+    }));
+  },
+};
+
 const SINGLETON_EXTERNALS = [
   "preact",
   "preact/hooks",
@@ -108,5 +133,5 @@ export default defineConfig({
     options.jsx = "automatic";
     options.jsxImportSource = "preact";
   },
-  esbuildPlugins: [inlineScriptPlugin],
+  esbuildPlugins: [inlineScriptPlugin, grayMatterEnginesPlugin],
 });
