@@ -1,6 +1,11 @@
 # @quartz-community/note-properties
 
-Parses frontmatter properties and renders them as a visible properties view on the page, similar to Obsidian's properties panel.
+Renders frontmatter properties as a visible properties view on the page, similar to Obsidian's properties panel.
+
+> [!NOTE]
+> Quartz 5.1+ parses frontmatter itself (built-in, configured under `configuration.frontmatter`). On those
+> versions this plugin only builds and renders the properties view; disabling it no longer breaks titles,
+> tags, aliases or drafts. On older Quartz versions it still parses frontmatter as before.
 
 ## Installation
 
@@ -10,11 +15,11 @@ npx quartz plugin add github:quartz-community/note-properties
 
 ## Usage
 
-This plugin serves as both a **transformer** (parsing frontmatter) and a **component** (displaying the properties view).
+This plugin serves as both a **transformer** (collecting the properties to show, resolving links in them) and a **component** (displaying the properties view).
 
 ```yaml title="quartz.config.yaml"
 plugins:
-  # Transformer (parses frontmatter)
+  # Transformer (selects the properties to show)
   - source: github:quartz-community/note-properties
     enabled: true
     options:
@@ -25,8 +30,6 @@ plugins:
         - aliases
       excludedProperties: []
       hidePropertiesView: false
-      delimiters: "---"
-      language: yaml
 
   # Component (displays properties in the page layout)
   - source: github:quartz-community/note-properties
@@ -46,21 +49,19 @@ ExternalPlugin.NoteProperties({
   includedProperties: ["description", "tags", "aliases"],
   excludedProperties: [],
   hidePropertiesView: false,
-  delimiters: "---",
-  language: "yaml",
 });
 ```
 
 ## Configuration
 
-| Option               | Type       | Default                              | Description                                               |
-| -------------------- | ---------- | ------------------------------------ | --------------------------------------------------------- |
-| `includeAll`         | `boolean`  | `false`                              | Whether to include all frontmatter properties.            |
-| `includedProperties` | `string[]` | `["description", "tags", "aliases"]` | Properties to include when `includeAll` is `false`.       |
-| `excludedProperties` | `string[]` | `[]`                                 | Properties to exclude when `includeAll` is `true`.        |
-| `hidePropertiesView` | `boolean`  | `false`                              | Whether to hide the rendered properties view on the page. |
-| `delimiters`         | `string`   | `"---"`                              | The frontmatter delimiter style.                          |
-| `language`           | `string`   | `"yaml"`                             | The frontmatter language (`"yaml"` or `"toml"`).          |
+| Option               | Type       | Default                              | Description                                                                                    |
+| -------------------- | ---------- | ------------------------------------ | ---------------------------------------------------------------------------------------------- |
+| `includeAll`         | `boolean`  | `false`                              | Whether to include all frontmatter properties.                                                 |
+| `includedProperties` | `string[]` | `["description", "tags", "aliases"]` | Properties to include when `includeAll` is `false`.                                            |
+| `excludedProperties` | `string[]` | `[]`                                 | Properties to exclude when `includeAll` is `true`.                                             |
+| `hidePropertiesView` | `boolean`  | `false`                              | Whether to hide the rendered properties view on the page.                                      |
+| `delimiters`         | `string`   | `"---"`                              | Quartz < 5.1 only: frontmatter delimiters. On 5.1+ set `configuration.frontmatter.delimiters`. |
+| `language`           | `string`   | `"yaml"`                             | Quartz < 5.1 only: `"yaml"` or `"toml"`. On 5.1+ set `configuration.frontmatter.language`.     |
 
 ## Documentation
 

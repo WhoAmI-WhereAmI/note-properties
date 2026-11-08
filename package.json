@@ -51,7 +51,8 @@
     "typecheck": "tsc --noEmit",
     "check": "npm run typecheck && npm run lint && npm run format && npm run test",
     "prepublishOnly": "npm run build",
-    "release": "npm run build && changeset publish"
+    "release": "npm run build && changeset publish",
+    "version-packages": "changeset version && npm install --package-lock-only --ignore-scripts --no-audit --no-fund"
   },
   "peerDependencies": {
     "preact": "^10.0.0",
@@ -86,7 +87,7 @@
     "prettier": "^3.6.2",
     "remark-frontmatter": "^5.0.0",
     "sass": "^1.97.3",
-    "toml": "^3.0.0",
+    "toml": "^5.0.1",
     "tsup": "^8.5.0",
     "typescript": "^5.9.3",
     "unified": "^11.0.5",
@@ -117,9 +118,7 @@
         "aliases"
       ],
       "excludedProperties": [],
-      "hidePropertiesView": false,
-      "delimiters": "---",
-      "language": "yaml"
+      "hidePropertiesView": false
     },
     "optionSchema": {
       "includeAll": {
@@ -140,7 +139,7 @@
       },
       "delimiters": {
         "type": "string",
-        "description": "Frontmatter delimiters"
+        "description": "Frontmatter delimiters (only used by Quartz versions without built-in frontmatter; otherwise set configuration.frontmatter)"
       },
       "language": {
         "type": "enum",
@@ -148,7 +147,7 @@
           "yaml",
           "toml"
         ],
-        "description": "Frontmatter language"
+        "description": "Frontmatter language (only used by Quartz versions without built-in frontmatter; otherwise set configuration.frontmatter)"
       }
     },
     "components": {
@@ -156,6 +155,22 @@
         "displayName": "Note Properties",
         "defaultPosition": "beforeBody",
         "defaultPriority": 15
+      }
+    },
+    "capabilities": {
+      "provides": {
+        "data": [
+          "noteProperties"
+        ]
+      },
+      "requires": {
+        "data": [
+          {
+            "name": "frontmatter",
+            "reason": "the properties view has nothing to show"
+          },
+          "slug"
+        ]
       }
     }
   },
