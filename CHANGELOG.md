@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.2
+
+### Patch Changes
+
+- 808892b: The published bundle no longer contains gray-matter's JavaScript frontmatter parser (an `eval` that security scanners flag). It was never used: the plugin parses YAML and TOML itself and refuses JavaScript frontmatter. The bundle is also about 100 KB smaller.
+
 ## 1.1.1
 
 ### Patch Changes
