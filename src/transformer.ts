@@ -117,6 +117,32 @@ function collectLinkTargetsFromValue(value: unknown): Set<string> {
   return targets;
 }
 
+/**
+ * Whether the site marks broken internal links (`configuration.links.disableBrokenWikilinks`), as
+ * Quartz's links built-in does for the note's body: those links get the `broken` class.
+ */
+function brokenWikilinksDisabled(ctx: BuildCtx): boolean {
+  const links = (ctx.cfg?.configuration as { links?: unknown } | undefined)?.links;
+  return (
+    typeof links === "object" &&
+    links !== null &&
+    (links as { enabled?: unknown }).enabled !== false &&
+    (links as { disableBrokenWikilinks?: unknown }).disableBrokenWikilinks === true
+  );
+}
+
+/** The page a relative href on page `slug` points to, as Quartz's links built-in computes it. */
+function targetSlug(href: string, slug: string): FullSlug | undefined {
+  try {
+    const url = new URL(href, `https://base.com/${slug.replace(/^\/+/, "")}`);
+    let path = decodeURIComponent(url.pathname).replace(/^\/+/, "");
+    if (path === "" || path.endsWith("/")) path += "index";
+    return path as FullSlug;
+  } catch {
+    return undefined;
+  }
+}
+
 /** Quartz-internal frontmatter keys that should never appear in the properties table. */
 const QUARTZ_INTERNAL_KEYS = new Set([
   "quartz-properties",
@@ -297,11 +323,16 @@ export const NoteProperties: QuartzTransformerPlugin<Partial<NotePropertiesOptio
         () => {
           return (_tree: unknown, file: { data: Record<string, unknown> }) => {
             const noteProps = file.data.noteProperties as
-              | { properties: Record<string, unknown>; resolvedLinks?: Record<string, string> }
+              | {
+                  properties: Record<string, unknown>;
+                  resolvedLinks?: Record<string, string>;
+                  brokenLinks?: string[];
+                }
               | undefined;
             if (!noteProps) return;
 
             const fileSlug = file.data.slug as FullSlug;
+            const disableBroken = brokenWikilinksDisabled(ctx);
             const transformOptions: TransformOptions = {
               strategy: "shortest",
               allSlugs: ctx.allSlugs,
@@ -315,10 +346,18 @@ export const NoteProperties: QuartzTransformerPlugin<Partial<NotePropertiesOptio
             if (targets.size === 0) return;
 
             const resolved: Record<string, string> = {};
+            const broken: string[] = [];
             for (const target of targets) {
-              resolved[target] = transformLink(fileSlug, target, transformOptions);
+              if (/^[a-z][a-z0-9+.-]*:/i.test(target)) continue; // external URL
+              const href = transformLink(fileSlug, target, transformOptions);
+              resolved[target] = href;
+              const full = targetSlug(href, fileSlug);
+              if (disableBroken && full !== undefined && !ctx.allSlugs.includes(full)) {
+                broken.push(target);
+              }
             }
             noteProps.resolvedLinks = resolved;
+            if (broken.length > 0) noteProps.brokenLinks = broken;
           };
         },
       ];
@@ -336,6 +375,7 @@ declare module "vfile" {
       showProperties?: boolean;
       collapseProperties?: boolean;
       resolvedLinks?: Record<string, string>;
+      brokenLinks?: string[];
     };
   }
 }

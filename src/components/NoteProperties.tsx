@@ -21,6 +21,8 @@ const URL_RE = /https?:\/\/[^\s<>]+/g;
 type RenderCtx = {
   slug: string;
   resolvedLinks: Record<string, string>;
+  /** Link targets whose page doesn't exist, with `disableBrokenWikilinks` on. */
+  brokenLinks: Set<string>;
   /** The page listing a tag, if the site has one (see `tagPageFor`). */
   tagPage: (tag: string) => string | undefined;
 };
@@ -47,17 +49,27 @@ function lookupHref(ctx: RenderCtx, slugifiedTarget: string): string {
   return ctx.resolvedLinks[slugifiedTarget] ?? resolveRelative(ctx.slug, slugifiedTarget);
 }
 
+function linkClass(ctx: RenderCtx, key: string): string {
+  return classNames(
+    "internal",
+    "internal-link",
+    "note-properties-link",
+    ctx.brokenLinks.has(key) ? "broken" : undefined,
+  );
+}
+
 function renderTextWithLinks(text: string, ctx: RenderCtx): (preact.JSX.Element | string)[] {
   const segments: { start: number; end: number; node: preact.JSX.Element }[] = [];
   for (const match of text.matchAll(WIKILINK_RE)) {
     const target = match[1]!;
     const display = match[2] ?? target;
-    const href = lookupHref(ctx, slugifyWikilinkTarget(target));
+    const key = slugifyWikilinkTarget(target);
+    const href = lookupHref(ctx, key);
     segments.push({
       start: match.index,
       end: match.index + match[0].length,
       node: (
-        <a href={href} class="internal internal-link note-properties-link">
+        <a href={href} class={linkClass(ctx, key)}>
           {display}
         </a>
       ),
@@ -79,10 +91,11 @@ function renderTextWithLinks(text: string, ctx: RenderCtx): (preact.JSX.Element 
       node: (
         <a
           href={resolvedHref}
-          class={classNames(
-            isExternal ? "external external-link" : "internal internal-link",
-            "note-properties-link",
-          )}
+          class={
+            isExternal
+              ? classNames("external external-link", "note-properties-link")
+              : linkClass(ctx, href)
+          }
           {...(isExternal ? { target: "_blank", rel: "noopener noreferrer" } : {})}
         >
           {display || href}
@@ -209,6 +222,7 @@ export default ((opts?: NotePropertiesComponentOptions) => {
           showProperties?: boolean;
           collapseProperties?: boolean;
           resolvedLinks?: Record<string, string>;
+          brokenLinks?: string[];
         }
       | undefined;
     if (!noteProps) return null;
@@ -227,6 +241,7 @@ export default ((opts?: NotePropertiesComponentOptions) => {
     const ctx: RenderCtx = {
       slug: (props.fileData?.slug as string) ?? "",
       resolvedLinks: noteProps.resolvedLinks ?? {},
+      brokenLinks: new Set(noteProps.brokenLinks ?? []),
       tagPage: (tag) => tagPageFor(tag, props.allFiles ?? []),
     };
 
