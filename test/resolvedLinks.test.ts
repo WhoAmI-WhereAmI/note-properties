@@ -7,9 +7,13 @@ function buildFile(
   frontmatter: string,
   slug: string,
   allSlugs: string[],
+  links?: unknown,
 ): { data: Record<string, unknown> } {
   const plugin = NoteProperties({ includeAll: true });
-  const ctx = { allSlugs: allSlugs as FullSlug[] } as unknown as BuildCtx;
+  const ctx = {
+    allSlugs: allSlugs as FullSlug[],
+    cfg: { configuration: { links } },
+  } as unknown as BuildCtx;
 
   const mdPlugins = plugin.markdownPlugins!(ctx);
   const mdTransformer = (mdPlugins[1] as () => (tree: unknown, file: VFile) => void)();
@@ -144,5 +148,26 @@ describe("resolvedLinks (htmlPlugins)", () => {
       "with-hyphen/purplegrape",
     ]);
     expect(resolved["purplegrape"]).toBe("./with-hyphen/purplegrape");
+  });
+});
+
+// jackyzha0/quartz#2635: broken links in properties are marked like broken links in the body
+describe("brokenLinks (configuration.links.disableBrokenWikilinks)", () => {
+  const frontmatter = 'related: "[[Missing note]]"\nsee: "[[existing]]"\nmd: "[x](gone)"';
+  const brokenOf = (links?: unknown) =>
+    (
+      buildFile(frontmatter, "index", ["index", "existing"], links).data.noteProperties as {
+        brokenLinks?: string[];
+      }
+    ).brokenLinks;
+
+  it("lists links to pages that don't exist when the option is on", () => {
+    expect(brokenOf({ disableBrokenWikilinks: true })).toEqual(["missing-note", "gone"]);
+  });
+
+  it("lists none when the option is off (the default) or links are disabled", () => {
+    expect(brokenOf(undefined)).toBeUndefined();
+    expect(brokenOf({})).toBeUndefined();
+    expect(brokenOf({ enabled: false, disableBrokenWikilinks: true })).toBeUndefined();
   });
 });
