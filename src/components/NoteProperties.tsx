@@ -146,41 +146,36 @@ function renderTextWithLinks(text: string, ctx: RenderCtx): (preact.JSX.Element 
   return result;
 }
 
-function renderValue(value: unknown, ctx: RenderCtx): preact.JSX.Element | string {
+/**
+ * Obsidian's property types, inferred from the value (Obsidian reads them from
+ * the vault's types.json). Themes style values by `data-property-type`.
+ */
+export function propertyType(key: string, value: unknown): string {
+  if (key === "tags") return "tags";
+  if (key === "aliases") return "aliases";
+  if (Array.isArray(value)) return "multitext";
+  if (typeof value === "boolean") return "checkbox";
+  if (typeof value === "number") return "number";
+  if (typeof value === "string") {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return "date";
+    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(value)) return "datetime";
+  }
+  return "text";
+}
+
+function renderScalar(value: unknown, ctx: RenderCtx): preact.JSX.Element | string {
   if (value === null || value === undefined) {
     return <span class="note-properties-empty">—</span>;
   }
-
-  if (typeof value === "boolean") {
-    return (
-      <span class={classNames("note-properties-boolean", value ? "is-true" : "is-false")}>
-        <input type="checkbox" checked={value} disabled />
-      </span>
-    );
+  if (typeof value === "string") {
+    return <span class="note-properties-text">{renderTextWithLinks(value, ctx)}</span>;
   }
-
   if (typeof value === "number") {
     return <span class="note-properties-number">{value}</span>;
   }
-
-  if (typeof value === "string") {
-    const parts = renderTextWithLinks(value, ctx);
-    return <span class="note-properties-text">{parts}</span>;
+  if (typeof value === "boolean") {
+    return <span class="note-properties-text">{String(value)}</span>;
   }
-
-  if (Array.isArray(value)) {
-    const items = value.map((item, idx) => {
-      const rendered = renderValue(item, ctx);
-      return (
-        <>
-          {idx > 0 && <span class="note-properties-separator">, </span>}
-          {rendered}
-        </>
-      );
-    });
-    return <span class="note-properties-list">{items}</span>;
-  }
-
   if (typeof value === "object") {
     return (
       <span class="note-properties-object">
@@ -188,28 +183,89 @@ function renderValue(value: unknown, ctx: RenderCtx): preact.JSX.Element | strin
       </span>
     );
   }
-
   return String(value);
 }
 
-function renderTagList(tags: string[], ctx: RenderCtx): preact.JSX.Element {
-  const items = tags.map((tag, idx) => {
-    const page = ctx.tagPage(tag);
-    return (
-      <>
-        {idx > 0 && <span class="note-properties-separator">, </span>}
-        {page ? (
-          <a href={resolveRelative(ctx.slug, page)} class="internal internal-link tag-link">
-            {tag}
-          </a>
-        ) : (
-          <span class="tag-link">{tag}</span>
-        )}
-      </>
-    );
-  });
-  return <span class="note-properties-tags">{items}</span>;
+/** Obsidian's list values: pills in a `multi-select-container`. */
+function renderPills(items: preact.JSX.Element[]): preact.JSX.Element {
+  return (
+    <div class="multi-select-container note-properties-list">
+      {items.map((content) => (
+        <div class="multi-select-pill">
+          <div class="multi-select-pill-content">{content}</div>
+        </div>
+      ))}
+    </div>
+  );
 }
+
+function renderTags(tags: string[], ctx: RenderCtx): preact.JSX.Element {
+  return renderPills(
+    tags.map((tag) => {
+      const page = ctx.tagPage(tag);
+      return page ? (
+        <a href={resolveRelative(ctx.slug, page)} class="internal tag-link note-properties-tag">
+          {tag}
+        </a>
+      ) : (
+        <span class="tag-link note-properties-tag">{tag}</span>
+      );
+    }),
+  );
+}
+
+function renderValue(type: string, value: unknown, ctx: RenderCtx): preact.JSX.Element {
+  switch (type) {
+    case "tags":
+      return renderTags((value as unknown[]).map(String), ctx);
+    case "aliases":
+    case "multitext":
+      return renderPills((value as unknown[]).map((item) => <>{renderScalar(item, ctx)}</>));
+    case "checkbox":
+      return (
+        <input
+          type="checkbox"
+          class="metadata-input-checkbox note-properties-boolean"
+          checked={value as boolean}
+          disabled
+        />
+      );
+    case "number":
+      return (
+        <div class="metadata-input metadata-input-number note-properties-number">
+          {String(value)}
+        </div>
+      );
+    case "date":
+    case "datetime":
+      return (
+        <div class="metadata-input metadata-input-text mod-date note-properties-text">
+          {String(value)}
+        </div>
+      );
+    default:
+      return <div class="metadata-input-longtext">{renderScalar(value, ctx)}</div>;
+  }
+}
+
+/** Obsidian's collapse chevron (lucide `right-triangle`). */
+const CollapseIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    stroke="currentColor"
+    stroke-width="0"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    class="svg-icon right-triangle"
+    aria-hidden="true"
+  >
+    <path d="M3 8L12 17L21 8"></path>
+  </svg>
+);
 
 export default ((opts?: NotePropertiesComponentOptions) => {
   const { collapsed = false } = opts ?? {};
@@ -247,30 +303,53 @@ export default ((opts?: NotePropertiesComponentOptions) => {
 
     // Per-note collapse override takes precedence over component option
     const isCollapsed = noteProps.collapseProperties ?? collapsed;
+    // Obsidian's markup (`metadata-*`), which Obsidian themes style, in a
+    // <details> so it collapses without JavaScript.
     return (
       <details
-        class={classNames(props.displayClass, "note-properties", "metadata-container")}
+        class={classNames(
+          props.displayClass,
+          "note-properties",
+          "metadata-container",
+          isCollapsed ? "is-collapsed" : undefined,
+        )}
         open={!isCollapsed}
         data-collapsed={isCollapsed}
+        data-property-count={entries.length}
       >
-        <summary class="note-properties-header">
-          <span class="note-properties-title">{i18nData.components.noteProperties.title}</span>
+        <summary class="note-properties-header metadata-properties-heading">
+          <div class="collapse-indicator collapse-icon">
+            <CollapseIcon />
+          </div>
+          <div class="note-properties-title metadata-properties-title">
+            {i18nData.components.noteProperties.title}
+          </div>
           <span class="note-properties-count">{entries.length}</span>
         </summary>
-        <table class="note-properties-table">
-          <tbody>
-            {entries.map(([key, value]) => (
-              <tr key={key} class="note-properties-row metadata-property">
-                <td class="note-properties-key metadata-property-key">{key}</td>
-                <td class="note-properties-value metadata-property-value">
-                  {key === "tags" && Array.isArray(value)
-                    ? renderTagList(value as string[], ctx)
-                    : renderValue(value, ctx)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div class="metadata-content">
+          <div class="metadata-properties">
+            {entries.map(([key, value]) => {
+              const type = propertyType(key, value);
+              return (
+                <div
+                  key={key}
+                  class="note-properties-row metadata-property"
+                  data-property-key={key}
+                >
+                  <div class="note-properties-key metadata-property-key">
+                    <span class="metadata-property-key-input">{key}</span>
+                  </div>
+                  <div
+                    class="note-properties-value metadata-property-value"
+                    data-property-type={type}
+                  >
+                    {renderValue(type, value, ctx)}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </details>
     );
   };

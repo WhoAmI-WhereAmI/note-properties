@@ -1,3 +1,6 @@
+// Quartz's look for the properties block. It uses Obsidian's class names
+// (`metadata-*`), so with an Obsidian theme (@quartz-themes/core) the theme's
+// rules, in a higher layer, take over.
 .note-properties {
   margin: 0.5rem 0 1rem;
   border: 1px solid var(--lightgray);
@@ -23,20 +26,20 @@
       display: none;
     }
 
-    &::before {
-      content: "";
-      display: inline-block;
-      width: 0.5em;
-      height: 0.5em;
-      border-right: 2px solid var(--darkgray);
-      border-bottom: 2px solid var(--darkgray);
-      transform: rotate(-45deg);
-      transition: transform 0.2s ease;
+    .collapse-indicator {
+      display: flex;
+      color: var(--darkgray);
+
+      svg {
+        width: 0.8em;
+        height: 0.8em;
+        transition: transform 0.2s ease;
+      }
     }
   }
 
-  &[open] > .note-properties-header::before {
-    transform: rotate(45deg);
+  &:not([open]) > .note-properties-header .collapse-indicator svg {
+    transform: rotate(-90deg);
   }
 
   .note-properties-count {
@@ -46,13 +49,8 @@
     font-weight: 400;
   }
 
-  .note-properties-table {
-    width: 100%;
-    border-collapse: collapse;
-    table-layout: fixed;
-  }
-
   .note-properties-row {
+    display: flex;
     border-bottom: 1px solid var(--lightgray);
 
     &:last-child {
@@ -61,17 +59,18 @@
   }
 
   .note-properties-key {
-    width: 35%;
+    flex: 0 0 35%;
+    box-sizing: border-box;
     padding: 0.35rem 0.8rem;
     color: var(--gray);
     font-size: 0.85rem;
-    vertical-align: top;
     word-break: break-word;
   }
 
   .note-properties-value {
+    flex: 1 1 auto;
+    min-width: 0;
     padding: 0.35rem 0.8rem;
-    vertical-align: top;
     word-break: break-word;
   }
 
@@ -81,11 +80,9 @@
   }
 
   .note-properties-boolean {
-    input[type="checkbox"] {
-      pointer-events: none;
-      margin: 0;
-      vertical-align: middle;
-    }
+    pointer-events: none;
+    margin: 0;
+    vertical-align: middle;
   }
 
   .note-properties-number {
@@ -102,30 +99,30 @@
     }
   }
 
-  .note-properties-separator {
-    color: var(--gray);
+  .multi-select-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
   }
 
-  .note-properties-list {
-    display: inline;
-  }
-
-  .note-properties-tags {
+  .multi-select-pill {
     display: inline-flex;
+    padding: 0.1rem 0.4rem;
+    border-radius: 3px;
+    background: var(--highlight);
+    font-size: 0.85em;
+  }
 
-    .tag-link {
-      display: inline-block;
-      padding: 0.1rem 0.4rem;
-      border-radius: 3px;
-      background: var(--highlight);
-      color: var(--secondary);
-      font-size: 0.85em;
-      text-decoration: none;
+  .note-properties-tag {
+    color: var(--secondary);
+    text-decoration: none;
+  }
 
-      &:hover {
-        background: var(--secondary);
-        color: var(--light);
-      }
+  .multi-select-pill:has(a.note-properties-tag):hover {
+    background: var(--secondary);
+
+    .note-properties-tag {
+      color: var(--light);
     }
   }
 
