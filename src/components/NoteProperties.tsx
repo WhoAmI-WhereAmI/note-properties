@@ -6,6 +6,7 @@ import type {
 import { classNames } from "../util/lang";
 import { resolveRelative, slugifyWikilinkTarget } from "../util/path";
 import { i18n } from "../i18n";
+import { PropertyIcon } from "./icons";
 import style from "./styles/noteProperties.scss";
 // @ts-expect-error - inline script import handled by Quartz bundler
 import script from "./scripts/noteProperties.inline.ts";
@@ -337,6 +338,7 @@ export default ((opts?: NotePropertiesComponentOptions) => {
                   data-property-key={key}
                 >
                   <div class="note-properties-key metadata-property-key">
+                    <PropertyIcon type={type} />
                     <span class="metadata-property-key-input">{key}</span>
                   </div>
                   <div

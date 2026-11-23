@@ -59,12 +59,25 @@
   }
 
   .note-properties-key {
+    display: flex;
+    align-items: center;
+    gap: 0.4em;
     flex: 0 0 35%;
     box-sizing: border-box;
     padding: 0.35rem 0.8rem;
     color: var(--gray);
     font-size: 0.85rem;
     word-break: break-word;
+  }
+
+  .metadata-property-icon {
+    display: flex;
+    flex-shrink: 0;
+
+    svg {
+      width: 1em;
+      height: 1em;
+    }
   }
 
   .note-properties-value {

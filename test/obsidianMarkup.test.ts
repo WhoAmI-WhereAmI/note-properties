@@ -69,6 +69,23 @@ describe("Obsidian's properties markup", () => {
     expect(has("metadata-input-longtext")).toHaveLength(1);
   });
 
+  it("shows Obsidian's icon for each property type", () => {
+    const els = render({ tags: ["a"], aliases: ["b"], n: 1, done: true, d: "2024-01-15", s: "x" });
+    const icons = els
+      .filter((e) => e.type === "svg")
+      .map((e) => classOf(e))
+      .filter((c) => c.startsWith("svg-icon lucide-"));
+    expect(icons).toEqual([
+      "svg-icon lucide-tags",
+      "svg-icon lucide-forward",
+      "svg-icon lucide-binary",
+      "svg-icon lucide-check-square",
+      "svg-icon lucide-calendar",
+      "svg-icon lucide-text",
+    ]);
+    expect(els.filter((e) => classOf(e) === "metadata-property-icon")).toHaveLength(6);
+  });
+
   it("marks a collapsed block like Obsidian", () => {
     const fileData = {
       slug: "page",
