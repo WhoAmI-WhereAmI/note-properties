@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.4
+
+### Patch Changes
+
+- ee5a9cc: An empty property (`tags:` or `aliases:` with no value, an empty list, or any `key:` left empty) now shows Obsidian's empty marker instead of failing the whole build.
+
 ## 1.2.3
 
 ### Patch Changes
