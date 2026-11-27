@@ -215,13 +215,24 @@ function renderTags(tags: string[], ctx: RenderCtx): preact.JSX.Element {
   );
 }
 
+/** A list property's items: a single value counts as a one-item list. */
+function listItems(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : [value];
+}
+
 function renderValue(type: string, value: unknown, ctx: RenderCtx): preact.JSX.Element {
+  // An empty property (`key:` with no value, or an empty list), of any type: Obsidian's empty
+  // marker rather than an empty or broken input. Quartz keeps `tags: null` / `aliases: null`
+  // from an empty `tags:` line as they are.
+  if (value === null || value === undefined || (Array.isArray(value) && value.length === 0)) {
+    return <div class="metadata-input-longtext">{renderScalar(null, ctx)}</div>;
+  }
   switch (type) {
     case "tags":
-      return renderTags((value as unknown[]).map(String), ctx);
+      return renderTags(listItems(value).map(String), ctx);
     case "aliases":
     case "multitext":
-      return renderPills((value as unknown[]).map((item) => <>{renderScalar(item, ctx)}</>));
+      return renderPills(listItems(value).map((item) => <>{renderScalar(item, ctx)}</>));
     case "checkbox":
       return (
         <input

@@ -128,13 +128,30 @@ describe("other values", () => {
     expect(value({ x: null })).toContain('<span class="note-properties-empty">—</span>');
   });
 
-  // bug: a note with an empty `tags:` (or `aliases:`) line, common in Obsidian templates, keeps
+  // A note with an empty `tags:` (or `aliases:`) line, common in Obsidian templates, keeps
   // `tags: null` in its frontmatter (Quartz's Frontmatter built-in only replaces non-empty
-  // values), and the properties view, which shows tags and aliases by default, calls `.map` on
-  // it: rendering the page throws.
-  it.fails("renders an empty tags or aliases property", () => {
-    expect(() => render({ properties: { tags: null } })).not.toThrow();
-    expect(() => render({ properties: { aliases: null } })).not.toThrow();
+  // values); rendering it used to throw and fail the whole build.
+  it("renders an empty tags or aliases property as the empty marker", () => {
+    const empty =
+      '<div class="metadata-input-longtext"><span class="note-properties-empty">—</span></div>';
+    expect(value({ tags: null })).toBe(empty);
+    expect(value({ aliases: null })).toBe(empty);
+  });
+
+  it("renders an empty list, of any key, as the empty marker", () => {
+    const empty =
+      '<div class="metadata-input-longtext"><span class="note-properties-empty">—</span></div>';
+    expect(value({ tags: [] })).toBe(empty);
+    expect(value({ aliases: [] })).toBe(empty);
+    expect(value({ list: [] })).toBe(empty);
+    expect(value({ when: undefined })).toBe(empty);
+  });
+
+  it("shows a single tag or alias that is not a list as a one-item list", () => {
+    expect(value({ aliases: "Other name" })).toContain(
+      '<div class="multi-select-pill-content"><span class="note-properties-text">Other name</span></div>',
+    );
+    expect(value({ tags: "solo" })).toContain(">solo</span>");
   });
 });
 
